@@ -8,28 +8,31 @@ $apiURL = "https://suitmedia-backend.suitdev.com/api/ideas?"
         . "&append[]=small_image&append[]=medium_image"
         . "&sort=$sort";
 
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, $apiURL);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    "Accept: application/json"
-]);
-$response = curl_exec($ch);
-curl_close($ch);
+$options = [
+    "http" => [
+        "header" => "Accept: application/json\r\n"
+    ]
+];
+$context = stream_context_create($options);
 
-$data = json_decode($response, true);
-$ideas = $data['data'] ?? [];
+$response = file_get_contents($apiURL, false, $context);
 
-// echo "<pre>";
-// print_r($ideas[0]['medium_image'] ?? 'Tidak ada medium_image');
-// echo "</pre>";
-
-$meta = $data['meta'] ?? [];
-$currentPage = $meta['current_page'] ?? 1;
-$totalPages = $meta['last_page'] ?? 1;
+if ($response === false) {
+    $data = [];
+    $ideas = [];
+    $meta = [];
+    $currentPage = 1;
+    $totalPages = 1;
+} else {
+    $data = json_decode($response, true);
+    $ideas = $data['data'] ?? [];
+    $meta = $data['meta'] ?? [];
+    $currentPage = $meta['current_page'] ?? 1;
+    $totalPages = $meta['last_page'] ?? 1;
+}
 ?>
 
-<!-- Hero section -->
+<!-- Banner -->
 <section class="relative aspect-[16/5] md:aspect-[16/4] overflow-hidden" aria-label="Ideas hero banner">
   <div class="absolute inset-0 bg-cover bg-top bg-no-repeat z-0" style="background-image: url('wallhaven-01.jpg');"></div>
   <div class="relative z-10 flex items-center justify-center h-full px-6 text-white text-center">
@@ -69,22 +72,17 @@ $totalPages = $meta['last_page'] ?? 1;
             $title = $idea['title'] ?? 'No title';
             $published = isset($idea['published_at']) ? date("j F Y", strtotime($idea['published_at'])) : '';
 
-            // $image = isset($idea['medium_image'][0]['url']) 
-            // ? 'image-proxy.php?url=' . urlencode($idea['medium_image'][0]['url']) 
-            // : 'https://placehold.co/600x400?text=No+Image';
             $image = isset($idea['medium_image'][0]['url']) 
             ? $idea['medium_image'][0]['url'] 
             : 'https://placehold.co/600x400?text=No+Image';
         ?>
             <article tabindex="0" class="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200">
-
             <img 
-                src="image-proxy.php?url=<?= urlencode($image) ?>" 
+                src="<?= htmlspecialchars($image) ?>" 
                 alt="<?= htmlspecialchars($title) ?>" 
                 class="w-full h-40 object-cover" 
                 loading="lazy"
-            />          
-
+            />         
 
             <div class="p-4">
                 <time class="block text-xs text-gray-500 mb-2"><?= htmlspecialchars($published) ?></time>
